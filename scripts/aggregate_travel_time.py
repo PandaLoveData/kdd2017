@@ -13,12 +13,13 @@ from datetime import datetime,timedelta
 
 file_suffix = '.csv'
 path = '../'  # set the data directory
+out_path = '../results/'
 
 def avgTravelTime(in_file):
 
     out_suffix = '_20min_avg_travel_time'
     in_file_name = in_file + file_suffix
-    out_file_name = in_file.split('_')[1] + out_suffix + file_suffix
+    out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
 
     # Step 1: Load trajectories
     fr = open(path + in_file_name, 'r')
@@ -40,7 +41,7 @@ def avgTravelTime(in_file):
 
         trace_start_time = each_traj[3]
         trace_start_time = datetime.strptime(trace_start_time, "%Y-%m-%d %H:%M:%S")
-        time_window_minute = math.floor(trace_start_time.minute / 20) * 20
+        time_window_minute = int(math.floor(trace_start_time.minute / 20) * 20)
         start_time_window = datetime(trace_start_time.year, trace_start_time.month, trace_start_time.day,
                                      trace_start_time.hour, time_window_minute, 0)
         tt = float(each_traj[-1]) # travel time
@@ -67,9 +68,10 @@ def avgTravelTime(in_file):
     fw.close()
 
 def main():
-
+    dataDir = 'dataSets/'
+    contextDir = 'training/'
     in_file = 'trajectories(table 5)_training'
-    avgTravelTime(in_file)
+    avgTravelTime(dataDir+contextDir+in_file)
 
 if __name__ == '__main__':
     main()

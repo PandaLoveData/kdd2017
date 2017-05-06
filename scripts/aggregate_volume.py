@@ -9,12 +9,13 @@ from datetime import datetime,timedelta
 
 file_suffix = '.csv'
 path = '../'  # set the data directory
+out_path = '../results/'
 
 def avgVolume(in_file):
 
     out_suffix = '_20min_avg_volume'
     in_file_name = in_file + file_suffix
-    out_file_name = in_file.split('_')[1] + out_suffix + file_suffix
+    out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
 
     # Step 1: Load volume data
     fr = open(path + in_file_name, 'r')
@@ -63,9 +64,10 @@ def avgVolume(in_file):
     fw.close()
 
 def main():
-
+    dataDir = 'dataSets/'
+    contextDir = 'training/'
     in_file = 'volume(table 6)_training'
-    avgVolume(in_file)
+    avgVolume(dataDir+contextDir+in_file)
 
 if __name__ == '__main__':
     main()
