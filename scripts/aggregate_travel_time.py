@@ -8,6 +8,7 @@ Calculate the average travel time for each 20-minute time window.
 """
 
 # import necessary modules
+import os
 import math
 from datetime import datetime,timedelta
 
@@ -19,6 +20,8 @@ def avgTravelTime(in_file):
 
     out_suffix = '_20min_avg_travel_time'
     in_file_name = in_file + file_suffix
+    if not os.path.exists(out_path):
+        os.mkdir(out_path)
     out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
 
     # Step 1: Load trajectories
@@ -62,10 +65,11 @@ def avgTravelTime(in_file):
             tt_set = travel_times[route][time_window_start]
             avg_tt = round(sum(tt_set) / float(len(tt_set)), 2)
             out_line = ','.join(['"' + route.split('-')[0] + '"', '"' + route.split('-')[1] + '"',
-                                 '"[' + str(time_window_start) + ',' + str(time_window_end) + ')"',
+                                '"' + str(time_window_start) + '"', #  '"[' + str(time_window_start) + ',' + str(time_window_end) + ')"',
                                  '"' + str(avg_tt) + '"']) + '\n'
             fw.writelines(out_line)
     fw.close()
+    return out_file_name
 
 def main():
     dataDir = 'dataSets/'

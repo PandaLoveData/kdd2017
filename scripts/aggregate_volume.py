@@ -15,6 +15,8 @@ def avgVolume(in_file):
 
     out_suffix = '_20min_avg_volume'
     in_file_name = in_file + file_suffix
+    if not os.path.exists(out_path):
+        os.mkdir(out_path)
     out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
 
     # Step 1: Load volume data
