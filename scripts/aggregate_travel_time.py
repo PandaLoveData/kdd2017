@@ -22,7 +22,10 @@ def avgTravelTime(in_file):
     in_file_name = in_file + file_suffix
     if not os.path.exists(out_path):
         os.mkdir(out_path)
-    out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
+    if len(in_file.split('_')) > 2:
+        out_file_name = out_path + in_file.split('_')[-1] + out_suffix + file_suffix
+    else:
+        out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
 
     # Step 1: Load trajectories
     fr = open(path + in_file_name, 'r')
