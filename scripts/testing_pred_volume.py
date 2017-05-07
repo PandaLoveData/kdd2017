@@ -135,6 +135,66 @@ def preprocess_testing_data(in_file):
     return testing_vol_file
 
 
+def predict_day(day):
+    # print day
+    global test_vol
+    for idx in pred_idx:
+        pred_time = index_to_time(idx)
+        # get day's time to predict
+        pred_time = datetime(year=pred_year,month=pred_month, day=day,
+            hour=pred_time.hour,minute=pred_time.minute)
+        # use previous data to help
+        before_time = pred_time + timedelta(minutes=-120)
+        if not before_time in test_vol.keys():
+            # should not come here
+            print 'Warning! Missing training data.'
+            assert (False)
+        
+        for toll_dir in toll_directions:
+            [tollgate_id, direction] = toll_dir.split('-')
+            if toll_dir not in test_vol[before_time]:
+                print 'Empty volume of route in time window:', toll_dir, before_time
+                test_vol[before_time][toll_dir] = []
+            if (len(test_vol[before_time][toll_dir]) == 0):
+                print 'Empty volume for toll dir in time', str(pred_time), toll_dir
+                test_vol[before_time][toll_dir].append(0.0)
+            # get before average volume
+            test_avg_vol = sum(test_vol[before_time][toll_dir]) / len(test_vol[before_time][toll_dir])
+
+            pred_volume = pred_vol_by_avg(tollgate_id, direction, pred_time, test_avg_vol)
+
+            if pred_time not in test_vol:
+                test_vol[pred_time] = {}
+                print 'Add predict time:', pred_time.strftime('%Y-%m-%d %H:%M:%S')
+
+            if toll_dir not in test_vol[pred_time]:
+                test_vol[pred_time][toll_dir] = 0.0
+            
+            test_vol[pred_time][toll_dir] = pred_volume
+
+
+def write_time_window_prediction(fw, time_idx):
+    global pred_day, test_vol
+    for toll_dir in sorted(toll_directions):
+        [toll_id, direction] = toll_dir.split('-')
+        for idx in time_idx:
+            pred_time = index_to_time(idx)
+            for day in sorted(pred_day.keys()):
+                pred_time = datetime(year=pred_year,month=pred_month,day=day,
+                    hour=pred_time.hour,minute=pred_time.minute)
+                end_time = pred_time + timedelta(minutes=20)
+                time_window = '"[' + pred_time.strftime('%Y-%m-%d %H:%M:%S')+ \
+                    ',' + end_time.strftime('%Y-%m-%d %H:%M:%S') +')"'
+                if pred_time not in test_vol:
+                    print idx, pred_time, 'not in test_vol'
+                    for key in sorted(test_vol.keys()):
+                        print key
+                    return
+                pred_vol = str(test_vol[pred_time][toll_dir])
+                outline = ','.join([toll_id, time_window, direction, pred_vol]) + '\n'
+                fw.writelines(outline)
+
+
 def read_testing_data(in_file):
     # volume(table 6)_test1.csv -> test1_20min_avg_volume.csv
     testing_vol_file = preprocess_testing_data(in_file)
@@ -144,7 +204,6 @@ def read_testing_data(in_file):
     fr.readline() # skip the header
     test_data = fr.readlines()
     print test_data[0]
-    print '...'
     fr.close()
     print 'Done reading testing data!\n'
 
@@ -182,39 +241,7 @@ def read_testing_data(in_file):
         # cannot use later data to predict past data
         # when i == len(test_data) - 1, predict the volume of the last day 
         if ((day != last_day) and (last_day != -1)) or i == len(test_data)-1:
-            # print last_day
-            for idx in pred_idx:
-                pred_time = index_to_time(idx)
-                # get last day's time to predict
-                pred_time = datetime(year=pred_year,month=pred_month, day=last_day,
-                    hour=pred_time.hour,minute=pred_time.minute)
-                # use previous data to help
-                before_time = pred_time + timedelta(minutes=-120)
-                if not before_time in test_vol.keys():
-                    # should not come here
-                    print 'Warning! Missing training data.'
-                    assert (False)
-                
-                for toll_dir in toll_directions:
-                    if toll_dir not in test_vol[before_time]:
-                        print 'Empty volume of route in time window:', toll_dir, before_time
-                        test_vol[before_time][toll_dir] = []
-                    if (len(test_vol[before_time][toll_dir]) == 0):
-                        print 'Empty volume for toll dir in time', str(pred_time), toll_dir
-                        test_vol[before_time][toll_dir].append(0.0)
-                    # get before average volume
-                    test_avg_vol = sum(test_vol[before_time][toll_dir]) / len(test_vol[before_time][toll_dir])
-
-                    pred_volume = pred_vol_by_avg(tollgate_id, direction, start_time, test_avg_vol)
-
-                    if pred_time not in test_vol:
-                        test_vol[pred_time] = {}
-                        print 'Add predict time:', pred_time.strftime('%Y-%m-%d %H:%M:%S')
-
-                    if toll_dir not in test_vol[pred_time]:
-                        test_vol[pred_time][toll_dir] = 0.0
-                    
-                    test_vol[pred_time][toll_dir] = pred_volume
+            predict_day(last_day)
         last_day = day
     
     print 'Done processing testing data.\n'
@@ -225,45 +252,12 @@ def read_testing_data(in_file):
     outline = ','.join(['tollgate_id','time_window','direction','volume']) + '\n'
     fw.writelines(outline)
 
+    # to obey the format of submission_sample_volume, we need to output 
+    # two time window predictions by sequence
     global pred_idx_1
-    for toll_dir in sorted(toll_directions):
-        [toll_id, direction] = toll_dir.split('-')
-        for idx in pred_idx_1:
-            pred_time = index_to_time(idx)
-            for day in sorted(pred_day.keys()):
-                pred_time = datetime(year=pred_year,month=pred_month,day=day,
-                    hour=pred_time.hour,minute=pred_time.minute)
-                end_time = pred_time + timedelta(minutes=20)
-                time_window = '"[' + pred_time.strftime('%Y-%m-%d %H:%M:%S')+ \
-                    ',' + end_time.strftime('%Y-%m-%d %H:%M:%S') +')"'
-                if pred_time not in test_vol:
-                    print idx, pred_time, 'not in test_vol'
-                    for key in sorted(test_vol.keys()):
-                        print key
-                    return
-                pred_vol = str(test_vol[pred_time][toll_dir])
-                outline = ','.join([toll_id, time_window, direction, pred_vol]) + '\n'
-                fw.writelines(outline)
-    
+    write_time_window_prediction(fw, pred_idx_1)
     global pred_idx_2
-    for toll_dir in sorted(toll_directions):
-        [toll_id, direction] = toll_dir.split('-')
-        for idx in pred_idx_2:
-            pred_time = index_to_time(idx)
-            for day in sorted(pred_day.keys()):
-                pred_time = datetime(year=pred_year,month=pred_month,day=day,
-                    hour=pred_time.hour,minute=pred_time.minute)
-                end_time = pred_time + timedelta(minutes=20)
-                time_window = '"[' + pred_time.strftime('%Y-%m-%d %H:%M:%S')+ \
-                    ',' + end_time.strftime('%Y-%m-%d %H:%M:%S') +')"'
-                if pred_time not in test_vol:
-                    print idx, pred_time, 'not in test_vol'
-                    for key in sorted(test_vol.keys()):
-                        print key
-                    return
-                pred_vol = str(test_vol[pred_time][toll_dir])
-                outline = ','.join([toll_id, time_window, direction, pred_vol]) + '\n'
-                fw.writelines(outline)
+    write_time_window_prediction(fw, pred_idx_2)
     fw.close()
     print 'Done writing.\n'
 
