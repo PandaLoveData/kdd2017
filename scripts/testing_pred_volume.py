@@ -41,8 +41,7 @@ pred_idx.extend(pred_idx_2)
 # for idx in pred_idx:
 #     print idx
 
-def history_vol(in_file):
-    contextDir = 'training/'
+def history_vol(in_file, contextDir):
     print 'Pre-training...'
     in_file = dataDir + contextDir + in_file
     hist_vol_file = avgVolume(in_file) # training_20min_avg_volume.csv
@@ -82,7 +81,7 @@ def history_vol(in_file):
     out_file_name = out_path + 'history_avg_vol' + file_suffix
     print 'Writing to file:', out_file_name
     fw = open(out_file_name, 'w')
-    outline = ','.join(['tollgate_id', 'start_time', 'direction', 'volume']) + '\n'
+    outline = ','.join(['"tollgate_id"', '"start_time"', '"direction"', '"volume"']) + '\n'
     fw.writelines(outline)
     for toll_dir in sorted(hist_win_vol.keys()):
         [toll_id, direction] = toll_dir.split('-')
@@ -126,18 +125,18 @@ def load_hist_vol_from(file_name):
     return hist_vol
 
 
-def preprocess_testing_data(in_file):
+def vol_preprocess_testing_data(in_file, contextDir):
     print 'Preprocessing testing data...'
-    contextDir = 'testing_phase1/'
+    # contextDir = 'testing_phase1/'
     in_file = dataDir + contextDir + in_file
     testing_vol_file = avgVolume(in_file)
     print 'Done! Output to', testing_vol_file, '\n'
     return testing_vol_file
 
 
-def read_testing_data(in_file):
+def vol_read_testing_data(in_file, contextDir='testing_phase1'):
     # volume(table 6)_test1.csv -> test1_20min_avg_volume.csv
-    testing_vol_file = preprocess_testing_data(in_file)
+    testing_vol_file = vol_preprocess_testing_data(in_file, contextDir)
     
     print 'Reading testing data from', testing_vol_file
     fr = open(testing_vol_file, 'r')
@@ -283,12 +282,33 @@ def pred_vol_by_avg(toll_id, direction, time_to_pred, test_avg_vol):
 
 def main():
     # hist_file_name = '../results/training_20min_avg_volume.csv'
-    hist_file_name = history_vol('volume(table 6)_training')
+    hist_file_name = history_vol('volume(table 6)_training', contextDir='training/')
     load_hist_vol_from(hist_file_name) # return: global hist_vol
-    read_testing_data('volume(table 6)_test1')
+    vol_read_testing_data('volume(table 6)_test1')
 
 
 if __name__ == '__main__':
     main()
 
 
+class VolumePredictor():
+    def __init__(self):
+        pass
+
+    def train_with_file(self, history_att):
+        pass
+    
+    def save_history(self, out_file):
+        pass
+
+    def load_history(self, in_file):
+        pass
+    
+    def read_testing_file(self, in_file):
+        pass
+    
+    def predictions():
+        pass
+
+    def save_predictions(self, out_file):
+        pass

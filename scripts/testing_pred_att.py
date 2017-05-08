@@ -14,10 +14,10 @@ file_suffix = '.csv'
 out_path = '../results/'
 dataDir = 'dataSets/'
 
-hist_att_win = {}  # history average travel time of routes in window
+hist_att_list = {}  # history average travel time of routes in window
+hist_att = {}
 
-def history_avg_travel_time(in_file):
-    contextDir = 'training/'
+def history_avg_travel_time(in_file, contextDir):
     print 'Pre-training: avg travel time of past data...'
     history_out_file_name = avgTravelTime(dataDir+contextDir+in_file)
 
@@ -34,29 +34,31 @@ def history_avg_travel_time(in_file):
         tollgate_id = line[1]
 
         route_id = intersection_id + '-' + tollgate_id
-        if route_id not in hist_att_win.keys():
-            hist_att_win[route_id] = {}
+        if route_id not in hist_att_list.keys():
+            hist_att_list[route_id] = {}
         
         trace_start_time = line[2]
         trace_start_time = datetime.strptime(trace_start_time, "%Y-%m-%d %H:%M:%S")
 
         time_window_index = time_to_index(trace_start_time)
         max_win_index = max(time_window_index, max_win_index)
-        if time_window_index not in hist_att_win[route_id].keys():
-            hist_att_win[route_id][time_window_index] = []
+        if time_window_index not in hist_att_list[route_id].keys():
+            hist_att_list[route_id][time_window_index] = []
         
         tt = float(line[-1]) # history average travel time
-        hist_att_win[route_id][time_window_index].append(tt)
+        hist_att_list[route_id][time_window_index].append(tt)
     print max_win_index # just check correctness
 
     out_file_name = out_path + 'history_att_win' + file_suffix
     fw = open(out_file_name, 'w')
-    for i in range(len(hist_att_win.keys())):
-        route_id = hist_att_win.keys()[i]
-        for j in range(len(hist_att_win[route_id].keys())):
+    outline = ','.join(["intersection_id","tollgate_id","time_window","avg_travel_time"]) + '\n'
+    fw.writelines(outline)
+    for i in range(len(hist_att_list.keys())):
+        route_id = hist_att_list.keys()[i]
+        for j in range(len(hist_att_list[route_id].keys())):
             [intersection_id, tollgate_id] = route_id.split('-')
             avg_att = str(round
-                (sum(hist_att_win[route_id][j])/len(hist_att_win[route_id][j]),
+                (sum(hist_att_list[route_id][j])/len(hist_att_list[route_id][j]),
                 2))
             outline = ','.join([intersection_id, tollgate_id, 
             index_to_time(j).strftime("%Y-%m-%d %H:%M:%S"), avg_att]) + '\n'
@@ -66,16 +68,36 @@ def history_avg_travel_time(in_file):
 
 
 def load_hist_avg_travel_time(hist_file_name):
-    hist_avg_tt = {}
+    global hist_att
+    hist_att.clear()
+    fr = open(hist_file_name, 'r')
+    fr.readline() # skip header
 
-    return hist_avg_tt
+    hist_lines = fr.readlines()
+    for i in range(len(hist_lines)):
+        line = hist_lines[i].split(',')
+        intersection_id = line[0]
+        tollgate_id = line[1]
+        route_id = intersection_id + '-' + tollgate_id
+        if route_id not in hist_att:
+            hist_att[route_id] = {}
+        
+        att = float(line[3])
+
+        start_time = datetime.strptime(line[2], '%Y-%m-%d %H:%M:%S')
+        time_index = time_to_index(start_time)
+        if time_index not in hist_att[route_id]:
+            hist_att[route_id][time_index] = 0.0
+        hist_att[route_id][time_index] = att
+
+    return hist_att
 
 
-def pre_processing_testing_data(test_file_name):
-    print '\tpre_processing testing data...'
-    contextDir = 'testing_phase1/'
+def pre_processing_testing_data(test_file_name, contextDir):
     test_file_name = dataDir + contextDir + test_file_name
+    print '\tpre_processing testing data in', test_file_name
     out_file_name = avgTravelTime(test_file_name)
+    print 'Done pre-processing testing data!\n'
     return out_file_name
 
 
@@ -93,13 +115,11 @@ pred_idx.extend(range(pred_start_idx, pred_end_idx))
 pred_year = 2016
 pred_month = 10
 
-def read_testing_data(test_file_name):
-    print 'read testing data...'
-    test_out_file_name = pre_processing_testing_data(test_file_name)
+def att_read_testing_data(test_file_name, contextDir):
+    test_out_file_name = pre_processing_testing_data(test_file_name, contextDir)
     print test_out_file_name
     fr = open(test_out_file_name, 'r')
     print fr.readline()  # skip the header
-    
     window_data = fr.readlines()
     fr.close()
     for i in xrange(len(window_data)):
@@ -119,7 +139,7 @@ def read_testing_data(test_file_name):
         if route_id not in pred_day[day]:
             pred_day[day][route_id] = []
     
-    pred_out_file_name = out_path + 'pred_avg_travel_time' + file_suffix
+    pred_out_file_name = out_path + 'pred_avg_travel_time' + '_' +contextDir.split('_')[-1].replace('/', '') + file_suffix
     fw = open(pred_out_file_name, 'w')
     fw.writelines(','.join(['"intersection_id"', '"tollgate_id"', '"time_window"', '"avg_travel_time"']) + '\n')
     for day in sorted(pred_day.keys()):
@@ -134,8 +154,8 @@ def read_testing_data(test_file_name):
                 end_time = time + timedelta(minutes=20)
                 
                  # history average value
-                pred_att = round(sum(hist_att_win[route_id][index]) / len(hist_att_win[route_id][index]), 2)
-
+                pred_att = round(sum(hist_att_list[route_id][index]) / len(hist_att_list[route_id][index]), 2)
+                
                 outline = ','.join([intersection_id, tollgate_id, 
                     '"[' + str(time) + ',' + str(end_time) + ')"', str(pred_att) ]) + '\n'
 
@@ -149,9 +169,9 @@ def pred_att(pred_time_idx):
 
 
 def main():
-    hist_avg_file_name = history_avg_travel_time('trajectories(table 5)_training')
+    hist_avg_file_name = history_avg_travel_time('trajectories(table 5)_training', contextDir='training/')
     hist_avg_tt = load_hist_avg_travel_time(hist_avg_file_name)
-    read_testing_data('trajectories(table 5)_test1')
+    att_read_testing_data('trajectories(table 5)_test1', contextDir='testing_phase1/')
     # pred_att(pred_idx)
 
 
