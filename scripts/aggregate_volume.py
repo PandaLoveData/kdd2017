@@ -71,11 +71,13 @@ def avgVolume(in_file):
     fw.close()
     return out_file_name
 
+
 def main():
     dataDir = 'dataSets/'
     contextDir = 'training/'
     in_file = 'volume(table 6)_training'
     avgVolume(dataDir+contextDir+in_file)
+
 
 if __name__ == '__main__':
     main()

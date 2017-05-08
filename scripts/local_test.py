@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
 #!/usr/bin/env python
 
+'''
+test avg travel time and volume locally using MAPE
+'''
+
 from datetime import datetime, time, date, timedelta
 
 from aggregate_travel_time import avgTravelTime
+from aggregate_volume import avgVolume
 from utils import att_mape, vol_mape, DATETIME_FORMAT, time_to_index
 from testing_pred_att import history_avg_travel_time, load_hist_avg_travel_time, att_read_testing_data
-from testing_pred_volume import hist_vol, load_hist_vol_from, vol_read_testing_data
+from testing_pred_volume import history_vol, load_hist_vol_from, vol_read_testing_data
 
 dataDir = 'dataSets'
 resultDir = '../results'
@@ -32,8 +37,12 @@ pred_idx.extend(pred_idx_2)
 pred_att = {}
 real_att = {}
 
-routes = {}
-time_windows = {}
+pred_vol = {}
+real_vol = {}
+
+routes = []
+toll_dirs = []
+time_windows = []
 
 def set_pred_days(month, days):
     global pred_month, pred_days
@@ -47,6 +56,14 @@ def set_routes(_routes):
     for r in _routes:
         print r
     routes = _routes
+
+
+def set_toll_dirs(_toll_dirs):
+    global toll_dirs
+    print 'Set toll directions:'
+    for td in _toll_dirs:
+        print td
+    toll_dirs = _toll_dirs
 
 
 def set_time_windows(_timewin):
@@ -180,30 +197,106 @@ def test_pred_att():
 
 
 def get_real_vol(in_file, contextDir):
-    real_vol = {}
-    pass
+    global real_vol
+    real_vol.clear()
+
+    in_file = '/'.join([dataDir, contextDir, in_file])
+    print 'Get real volume from file:', in_file
+    vol_file_name = avgVolume(in_file)
+    print 'Get aggregate volume from file', vol_file_name
+
+    fr = open(vol_file_name, 'r')
+    fr.readline() # skip header
+    vol_lines = fr.readlines()
+    fr.close()
+    print 'Done reading all lines!\n'
+
+    print 'Start loading real volume...'
+    for i in range(len(vol_lines)):
+        line = vol_lines[i].replace('"', '').split(',')
+        tollgate_id = line[0]
+        direction = line[3]
+        toll_dir = tollgate_id + '-' + direction
+
+        # ignore first '[' 
+        start_time = datetime.strptime(line[1][1:], DATETIME_FORMAT)
+        day = start_time.day
+        if day not in pred_days:
+            pred_days[day] = 0
+        
+        if toll_dir not in real_vol:
+            real_vol[toll_dir] = {}
+        if start_time not in real_vol[toll_dir]:
+            real_vol[toll_dir][start_time] = 0
+        
+        vol = float(line[-1])
+        real_vol[toll_dir][start_time] = vol
+
+    print 'Done getting real volume!\n'
+    return real_vol
 
 
-def get_pred_vol():
-    pred_vol = {}
+def get_pred_vol(in_file):
+    '''
+    Load predictions of volume from file
+    '''
+    global pred_vol
+    pred_vol.clear()
+    local_toll_dirs = {}
+    local_time_wind = {}
+    print 'Reading predictions from', in_file
+    fr = open(in_file, 'r')
+    fr.readline() # skip header
+    vol_lines = fr.readlines()
+    fr.close()
+    print 'Done reading!\n'
 
+    print 'Start loading predictions...'
+    for i in range(len(vol_lines)):
+        line = vol_lines[i].replace('"', '').split(',')
+        tollgate_id = line[0]
+        direction = line[3]
+        toll_dir = tollgate_id + '-' + direction
+        if toll_dir not in local_toll_dirs:
+            local_toll_dirs[toll_dir] = 0
+        # ignore close bracket '['
+        start_time = datetime.strptime(line[1][1:], DATETIME_FORMAT)
+
+        vol = float(line[-1])
+
+        if toll_dir not in pred_vol:
+            pred_vol[toll_dir] = {}
+        if start_time not in pred_vol[toll_dir]:
+            pred_vol[toll_dir][start_time] = 0
+        if start_time not in local_time_wind:
+            # print 'New prediction time comes!', start_time
+            local_time_wind[start_time] = 0
+        pred_vol[toll_dir][start_time] = vol
+    
+    set_toll_dirs(sorted(local_toll_dirs.keys()))
+    set_time_windows(sorted(local_time_wind.keys()))
+    print 'Done loading!\n'
     return pred_vol
 
 
 def test_pred_vol():
     print 'Test local prediction of volume...'
 
-    hist_file_name = history_vol('')
-    pred_vol = get_pred_vol('')
+    hist_file_name = history_vol('volume(table 6)_local', 'training_local')
+    hist_vol = load_hist_vol_from(hist_file_name)
+    vol_pred_file_name = vol_read_testing_data('volume(table 6)_valid', 'test_local')
+    print 'vol read testing file is:', vol_pred_file_name
+
+    pred_vol = get_pred_vol(vol_pred_file_name)
     real_vol = get_real_vol('volume(table 6)_valid', 'test_local')
     
     print 'Done evaluating MAPE for volume. MAPE is:\n'
-    print vol_mape()
+    print vol_mape(real_vol, pred_vol, toll_dirs, time_windows)
 
 
 def main():
-    test_pred_att()
-    # test_pred_vol()
+    # test_pred_att()
+    test_pred_vol()
 
 
 if __name__ == '__main__':
