@@ -25,12 +25,13 @@ start_date  = date(year = start_year, month = start_month, day = start_day)
 end_date    = date(year = end_year,   month = end_month,   day = end_day)
 
 class viewer(object):
-    def __init__(self, in_file, contextDir='training_local', file_suffix='.csv'):
+    def __init__(self, in_file, contextDir='training_local', file_suffix='.csv', pic_dir='../images'):
         self.in_file = in_file
         self.contextDir = contextDir
         self.file_suffix = file_suffix
         self.start_date = start_date
         self.end_date = end_date
+        self.pic_dir = pic_dir
 
     def load_training_file(self, in_file):
         pass
@@ -46,7 +47,7 @@ class viewer(object):
 
 
 class att_viewer(viewer):
-    def __init__(self, in_file, contextDir='training_local', file_suffix='.csv'):
+    def __init__(self, in_file, contextDir='training_local', file_suffix='.csv', pic_dir='../images'):
         super(att_viewer, self).__init__(in_file, contextDir, file_suffix)
         self.hist_att = {}
         self.routes = []
@@ -83,7 +84,7 @@ class att_viewer(viewer):
         self.routes = sorted(self.hist_att.keys())
 
 
-    def view_data_of_date(self, day):
+    def view_data_of_date(self, day, picname='data_of_date.png'):
         if day < self.start_date or day > self.end_date:
             print 'Day', day, 'out of range.'
             return
@@ -99,9 +100,15 @@ class att_viewer(viewer):
                 lines.append(ax.plot(x, np.array(self.hist_att[route_id][day]), '-', label=route_id))
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
     
-    def view_data_of_dates(self, day, day_num):
+    def view_data_of_dates(self, day, day_num, picname='data_of_dates.png'):
         num_route = len(self.routes)
         x = np.array(range(MAX_TIME_SIZE * day_num))
         lines = []
@@ -118,9 +125,15 @@ class att_viewer(viewer):
             lines.append(ax.plot(x, np.array(y), '-', label=route_id))
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
 
-    def view_route_data_of_date(self, route_id, day, smooth=False, origin=False):
+    def view_route_data_of_date(self, route_id, day, smooth=False, origin=False, picname='route_data_of_date.png'):
         if route_id not in self.hist_att:
             print 'Route', route_id, 'not in data.'
             return
@@ -147,9 +160,15 @@ class att_viewer(viewer):
         line = ax.plot(x, np.array(y), '-', label=label)
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, route_id+picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
 
-    def view_route_data_of_dates(self, route_id, day, num_day, smooth=False, origin=False):
+    def view_route_data_of_dates(self, route_id, day, num_day, smooth=False, origin=False, picname='route_data_of_dates.png'):
         if route_id not in self.hist_att:
             print 'Route', route_id, 'not in data.'
             return
@@ -181,13 +200,20 @@ class att_viewer(viewer):
             line_ori = ax.plot(x, np.array(y_ori), ':', label=route_id+'_ori')
         ax.legend(loc='upper right')
         plt.show()
+        
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, route_id+picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
 
 class vol_viewer(viewer):
-    def __init__(self, in_file, contextDir='training_local', file_suffix='.csv'):
+    def __init__(self, in_file, contextDir='training_local', file_suffix='.csv', pic_dir='../images'):
         super(vol_viewer, self).__init__(in_file, contextDir, file_suffix)
         self.hist_vol = {}
         self.toll_dirs = []
+        self.pic_dir = pic_dir
 
     def load_training_file(self):
         hist_vol_file = avgVolume('/'.join([dataDir, self.contextDir, self.in_file]))
@@ -220,7 +246,8 @@ class vol_viewer(viewer):
         
         self.toll_dirs = sorted(self.hist_vol.keys())
 
-    def view_data_of_date(self, day):
+
+    def view_data_of_date(self, day, picname='vol_data_of_date.png'):
         if day < self.start_date or day > self.end_date:
             print 'Day', day, 'out of range.'
             return
@@ -236,9 +263,15 @@ class vol_viewer(viewer):
                 lines.append(ax.plot(x, np.array(self.hist_vol[toll_dir][day]), '-', label=toll_dir))
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
         
 
-    def view_data_of_dates(self, day, day_num):
+    def view_data_of_dates(self, day, day_num, picname='vol_data_of_dates.png'):
         if day < self.start_date or day > self.end_date:
             print 'Warning! Date out of range', day
             return
@@ -259,9 +292,15 @@ class vol_viewer(viewer):
             lines.append(ax.plot(x, np.array(y), '-', label=toll_dir))
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
 
-    def view_tolldir_data_of_date(self, tolldir, day, smooth=False, origin=False):
+    def view_tolldir_data_of_date(self, tolldir, day, smooth=False, origin=False, picname='vol_tolldir_data_of_date.png'):
         if tolldir not in self.hist_vol:
             print 'Tollgate-direction', tolldir, 'not in history data.'
             return
@@ -283,9 +322,15 @@ class vol_viewer(viewer):
         line = ax.plot(x, np.array(y), '-', label=label)
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, tolldir+picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
     
-    def view_tolldir_data_of_dates(self, tolldir, day, day_num, smooth=False, origin=False):
+    def view_tolldir_data_of_dates(self, tolldir, day, day_num, smooth=False, origin=False, picname='vol_tolldir_data_of_dates.png'):
         if tolldir not in self.hist_vol:
             print 'Warning! Tollgate direction', tolldir, 'not in history data.'
             return
@@ -316,6 +361,12 @@ class vol_viewer(viewer):
             line_ori = ax.plot(x, np.array(y_ori), ':', label=tolldir+'_ori')
         ax.legend(loc='upper right')
         plt.show()
+        plt.close()
+        if not os.path.exists(self.pic_dir):
+            os.mkdir(self.pic_dir)
+        figname = '/'.join([self.pic_dir, tolldir+picname])
+        print 'Save fig:', figname
+        fig.savefig(figname)
 
 
 def get_file_name(rela_path, in_file, contextDir, file_suffix='csv'):
@@ -377,17 +428,17 @@ def main():
     
     viewer_a = att_viewer('trajectories(table 5)_local', contextDir='training_local')
     viewer_a.load_training_file()
-    viewer_a.view_data_of_date(day)
-    viewer_a.view_data_of_dates(day, 3)
-    viewer_a.view_route_data_of_date('C-3', day, smooth=True, origin=True)
-    viewer_a.view_route_data_of_dates('C-3', day, 3, smooth=True, origin=True)
+    viewer_a.view_data_of_date(day, picname='data_of_date.png')
+    viewer_a.view_data_of_dates(day, 3, picname='data_of_dates.png')
+    viewer_a.view_route_data_of_date('C-3', day, smooth=True, origin=True, picname='route_data_of_date.png')
+    viewer_a.view_route_data_of_dates('C-3', day, 3, smooth=True, origin=True, picname='route_data_of_dates.png')
 
     viewer_b = vol_viewer('volume(table 6)_local', contextDir='training_local')
     viewer_b.load_training_file()
-    viewer_b.view_data_of_date(day)
-    viewer_b.view_data_of_dates(day, 3)
-    viewer_b.view_tolldir_data_of_date('1-1', day, smooth=True, origin=True)
-    viewer_b.view_tolldir_data_of_dates('1-1', day, 3, smooth=True, origin=True)
+    viewer_b.view_data_of_date(day, picname='vol_data_of_date.png')
+    viewer_b.view_data_of_dates(day, 3, picname='vol_data_of_dates.png')
+    viewer_b.view_tolldir_data_of_date('1-1', day, smooth=True, origin=True, picname='vol_tolldir_data_of_date.png')
+    viewer_b.view_tolldir_data_of_dates('1-1', day, 3, smooth=True, origin=True, picname='vol_tolldir_data_of_dates.png')
 
 
 if __name__ == '__main__':
