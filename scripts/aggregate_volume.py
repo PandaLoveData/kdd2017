@@ -24,6 +24,11 @@ def avgVolume(in_file):
     else:
         out_file_name = out_path + in_file.split('_')[1] + out_suffix + file_suffix
 
+    if os.path.exists(out_file_name):
+        confirm = raw_input('Out file ' + out_file_name + ' already exists.\nReload? (y/N) ').lower()
+        if len(confirm) == 0 or confirm[0] == 'n':
+            return out_file_name
+
     # Step 1: Load volume data
     fr = open(path + in_file_name, 'r')
     fr.readline()  # skip the header
