@@ -9,13 +9,11 @@ import os
 from datetime import datetime, timedelta, time
 from aggregate_volume import avgVolume
 from utils import *
-from sklearn import svm
 
 file_suffix = '.csv'
 out_path = '../results/'
 dataDir = 'dataSets'
 PRED_METHOD = 'AVE'
-clf = svm.SVR()
 
 tollgates = ['1', '1', '2', '3', '3']
 directions = ['1', '0', '0', '1', '0']
@@ -303,7 +301,7 @@ def pred_vol_by_avg(toll_id, direction, time_to_pred, test_avg_vol):
         pred_vol = pred_vol * 0.9 + 0.1 * test_avg_vol
     return pred_vol
 
-
+# TODO
 def pred_vol_by_svr(toll_id, direction, time_to_pred, test_avg_vol):
     index = time_to_index(time_to_pred)
     toll_dir = '-'.join([toll_id, direction])
