@@ -10,6 +10,10 @@ DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 def time_to_index(date_time):
     return date_time.hour * 3 + int(math.floor(date_time.minute / 20))
 
+def time_to_date_index(date_time):
+    dtime = date_time.date - date(date_time.year, 1, 1)
+    return dtime.days
+
 def index_to_time(index):
     if index > 72:
         return None
@@ -24,7 +28,7 @@ def att_mape(d_rt, p_rt, routes, time_windows):
     '''
     num_r = len(routes)
     num_t = len(time_windows)
-    
+
     mape = 0.0
     for r in routes:
         sum_t = 0.0

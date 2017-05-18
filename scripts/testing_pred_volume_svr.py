@@ -90,34 +90,35 @@ def history_vol(in_file, contextDir):
         start_time = datetime.strptime(start_time_str, '%Y-%m-%d %H:%M:%S')
 
         time_index = time_to_index(start_time)
-        if not time_index in hist_win_vol[toll_dir]:
-            hist_win_vol[toll_dir][time_index] = []
+        date_index = time_to_date_index(start_time)
+        if not date_index in hist_win_vol[toll_dir]:
+            hist_win_vol[toll_dir][date_index] = {}
 
         volume = float(line[-1])
-        hist_win_vol[toll_dir][time_index].append(volume)
+        hist_win_vol[toll_dir][date_index][time_index] = volume
     print 'Done processing!\n'
 
-    out_file_name = out_path + 'history_avg_vol' + file_suffix
-    print 'Writing to file:', out_file_name
-    fw = open(out_file_name, 'w')
-    outline = ','.join(['"tollgate_id"', '"start_time"', '"direction"', '"volume"']) + '\n'
-    fw.writelines(outline)
-    for toll_dir in sorted(hist_win_vol.keys()):
-        [toll_id, direction] = toll_dir.split('-')
-        toll_dir_vol = hist_win_vol[toll_dir]
-        for time_index in range(0, 72):
-            if not time_index in toll_dir_vol:
-                toll_dir_vol[time_index] = [0.0]
-            avg_volume = sum(toll_dir_vol[time_index]) / len(toll_dir_vol[time_index])
-            avg_volume = str(round(avg_volume, 2))
-            outline = ','.join([toll_id, str(index_to_time(time_index)), direction,
-                avg_volume]) + '\n'
-            fw.writelines(outline)
+    # out_file_name = out_path + 'history_avg_vol_svr' + file_suffix
+    # print 'Writing to file:', out_file_name
+    # fw = open(out_file_name, 'w')
+    # outline = ','.join(['"tollgate_id"', '"start_time"', '"direction"', '"volume"']) + '\n'
+    # fw.writelines(outline)
+    # for toll_dir in sorted(hist_win_vol.keys()):
+    #     [toll_id, direction] = toll_dir.split('-')
+    #     toll_dir_vol = hist_win_vol[toll_dir]
+    #     for time_index in range(0, 72):
+    #         if not time_index in toll_dir_vol:
+    #             toll_dir_vol[time_index] = [0.0]
+    #         avg_volume = sum(toll_dir_vol[time_index]) / len(toll_dir_vol[time_index])
+    #         avg_volume = str(round(avg_volume, 2))
+    #         outline = ','.join([toll_id, str(index_to_time(time_index)), direction,
+    #             avg_volume]) + '\n'
+    #         fw.writelines(outline)
+    #
+    # fw.close()
+    # print 'Done writing\n'
 
-    fw.close()
-    print 'Done writing\n'
-
-    return out_file_name
+    return 0
 
 
 def load_hist_vol_from(file_name):
@@ -323,7 +324,7 @@ def pred_vol_by_svr(toll_id, direction, time_to_pred, test_avg_vol):
 def main():
     # hist_file_name = '../results/training_20min_avg_volume.csv'
     hist_file_name = history_vol('volume(table 6)_training', contextDir='training')
-    load_hist_vol_from(hist_file_name) # return: global hist_vol
+    # load_hist_vol_from(hist_file_name) # return: global hist_vol # not for svr
     # read and predict at the same time
     vol_read_testing_data('volume(table 6)_test1', contextDir='testing_phase1')
 
