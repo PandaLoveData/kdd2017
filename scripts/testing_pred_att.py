@@ -102,15 +102,6 @@ def pre_processing_testing_data(test_file_name, contextDir):
 
 
 pred_day = {}
-pred_idx = []
-
-pred_start_idx = time_to_index(datetime(year=2017, month=10, day=1, hour=8,minute=0))
-pred_end_idx = time_to_index(datetime(year=2017, month=10, day=1, hour=10, minute=0))
-pred_idx.extend(range(pred_start_idx, pred_end_idx))
-
-pred_start_idx = time_to_index(datetime(year=2017, month=10, day=1, hour=17, minute=0))
-pred_end_idx = time_to_index(datetime(year=2017, month=10, day=1, hour=19, minute=0))
-pred_idx.extend(range(pred_start_idx, pred_end_idx))
 
 pred_year = 2016
 pred_month = 10
@@ -128,8 +119,6 @@ def att_read_testing_data(test_file_name, contextDir):
         tollgate_id = line[1]
         window_start_time = line[2]
         window_start_time = datetime.strptime(window_start_time, "%Y-%m-%d %H:%M:%S")
-        
-        assert (pred_month == window_start_time.month)
             
         day = window_start_time.day
         if day not in pred_day:

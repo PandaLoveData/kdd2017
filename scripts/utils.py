@@ -3,9 +3,12 @@
 
 import os
 import math
-from datetime import datetime
+from datetime import datetime, time
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+MAX_TIME_INDEX = 72
+pred_idx = []
 
 def time_to_index(date_time):
     return date_time.hour * 3 + int(math.floor(date_time.minute / 20))
@@ -54,3 +57,11 @@ def vol_mape(f_rt, p_rt, toll_dirs, time_windows):
         mape += sum_t
     mape = mape / num_c
     return mape
+
+pred_start_idx = time_to_index(time(hour=8,minute=0))
+pred_end_idx = time_to_index(time(hour=10, minute=0))
+pred_idx.extend(range(pred_start_idx, pred_end_idx))
+
+pred_start_idx = time_to_index(time(hour=17, minute=0))
+pred_end_idx = time_to_index(time(hour=19, minute=0))
+pred_idx.extend(range(pred_start_idx, pred_end_idx))

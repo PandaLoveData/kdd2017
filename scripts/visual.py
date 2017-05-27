@@ -423,7 +423,32 @@ def my_vol_smoothing(tolldir_day_vol):
     return tolldir_day_vol
 
 
-def main():
+class data_viewer(object):
+    def __init__(self, pic_dir='../images'):
+        self.datas = []
+        self.labels = []
+        self.pic_dir = pic_dir
+
+    def add_data(self, data, label):
+        if len(data) != MAX_TIME_SIZE:
+            print label, 'data length not valid.'
+            return
+        self.datas.append(data)
+        self.labels.append(label)
+        
+
+    def draw_and_show(img_name='my_data.png'):
+        fig, ax = plt.subplots()
+        x = np.arange(MAX_TIME_SIZE)
+        for data in self.datas:
+            ax.plot(x, data, label=self.labels[i])
+        ax.legend()
+        plt.show()
+        figname = '/'.join([self.pic_dir, img_name])
+        fig.savefig(figname)
+    
+
+def test_viewer():
     day = date(year=2016, month=10, day=1)
     
     viewer_a = att_viewer('trajectories(table 5)_local', contextDir='training_local')
@@ -439,6 +464,10 @@ def main():
     viewer_b.view_data_of_dates(day, 3, picname='vol_data_of_dates.png')
     viewer_b.view_tolldir_data_of_date('1-1', day, smooth=True, origin=True, picname='vol_tolldir_data_of_date.png')
     viewer_b.view_tolldir_data_of_dates('1-1', day, 3, smooth=True, origin=True, picname='vol_tolldir_data_of_dates.png')
+    
+
+def main():
+    test_viewer()
 
 
 if __name__ == '__main__':

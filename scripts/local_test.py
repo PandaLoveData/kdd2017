@@ -9,18 +9,18 @@ from datetime import datetime, time, date, timedelta
 
 from aggregate_travel_time import avgTravelTime
 from aggregate_volume import avgVolume
-from utils import att_mape, vol_mape, DATETIME_FORMAT, time_to_index
+from utils import att_mape, vol_mape, DATETIME_FORMAT, time_to_index, MAX_TIME_INDEX
 from testing_pred_att import history_avg_travel_time, load_hist_avg_travel_time, att_read_testing_data
 from testing_pred_volume import history_vol, load_hist_vol_from, vol_read_testing_data
+from att_predictor import att_predictor
+from visual import data_viewer
 
 dataDir = 'dataSets'
-resultDir = '../results'
+result_dir = '../results'
 file_suffix = '.csv'
 
 pred_year = 2016
 pred_month = 10
-
-pred_days = {}
 
 start_index = time_to_index(time(hour=8, minute=0))
 end_index = time_to_index(time(hour=10, minute=0))
@@ -43,12 +43,6 @@ real_vol = {}
 routes = []
 toll_dirs = []
 time_windows = []
-
-def set_pred_days(month, days):
-    global pred_month, pred_days
-    pred_month = month
-    pred_days = days
-
 
 def set_routes(_routes):
     global routes
@@ -74,70 +68,46 @@ def set_time_windows(_timewin):
     time_windows = _timewin
 
 
-def get_real_att(in_file, contextDir='test_local'):
+def get_real_att(in_file, context_dir='test_local'):
     '''
     calculate real avg travel time from trajectories file
     '''
+    _ap = att_predictor(data_dir='dataSets', context_dir=context_dir, 
+        raw_file=in_file, result_dir='../results/local')
+    real_att_f = _ap.process_raw_file()
+    _ap.process_hist_file(real_att_f)
+    _ap.smooth_hist_att_data()
+    att_file_name = _ap.write_hist_att(out_file='valid_hist_att')
+
     real_att = {}
-    in_file = '/'.join([dataDir, contextDir, in_file])
-    att_file_name = avgTravelTime(in_file)
-    print 'Reading real avg travel time from test file', att_file_name
     
+    print 'Reading real avg travel time from test file', att_file_name   
     fr = open(att_file_name, 'r')
     fr.readline() # skip header
-
     real_lines = fr.readlines()
     print 'Done reading test data.\n'
-    print 'Start processing real avg travel time...'
 
+    print 'Start processing real avg travel time...'
     for i in range(len(real_lines)):
         # "B","3","2016-10-11 00:20:00","103.27"
         line = real_lines[i].replace('"', '').split(',')
+        
         intersection_id = line[0]
         tollgate_id = line[1]
-
         route_id = intersection_id + '-' + tollgate_id
-
-        start_time = datetime.strptime(line[2], DATETIME_FORMAT)
-        day = start_time.day
-        if day not in pred_days:
-            pred_days[day] = 0
-        
-        # time_index = time_to_index(start_time)
-        # if time_index not in pred_idx:
-        #     continue
-        
         if route_id not in real_att:
             real_att[route_id] = {}
         
+        start_time = datetime.strptime(line[2], DATETIME_FORMAT)
+        
         if start_time not in real_att[route_id]:
-            real_att[route_id][start_time] = []
+            real_att[route_id][start_time] = 0.0
         
         att = float(line[-1])
-        # use time (year, month, day, hour, minute) as key
-        real_att[route_id][start_time].append(att)
+        real_att[route_id][start_time]= att
 
     set_routes(sorted(real_att.keys()))
-
-    for r in routes:
-        # time_windows has been set in get_pred_att()
-        # but real values can be Null if there is no traffic
-        for t in time_windows:
-            if t not in real_att[r]:
-                print 'Empty value in real avg travel time:', r, t
-                before_t = t + timedelta(minutes=-20)
-                while before_t in time_windows and (before_t not in real_att[r]):
-                    before_t = before_t + timedelta(minutes=-20)
-                if before_t in time_windows:
-                    real_att[r][t] = real_att[r][before_t]
-                else:
-                    # should not come here
-                    print 'Set real att to zero. Handle in att_mape().'
-                    real_att[r][t] = 0.0
-            else:
-                real_att[r][t] = sum(real_att[r][t]) / len(real_att[r][t])
-    
-    print 'Done calculating real avg travel time.\n'
+    print 'Done loading real avg travel time.\n'
     return real_att
 
 
@@ -150,7 +120,7 @@ def get_pred_att(in_file):
 
     pred_time_windows = {}
 
-    in_file = '/'.join([resultDir, in_file + file_suffix])
+    # in_file = '/'.join([result_dir, in_file + file_suffix])
     print 'Loading prediction data from file', in_file
     fr = open(in_file, 'r')
     fr.readline() # skip header
@@ -179,6 +149,7 @@ def get_pred_att(in_file):
         pred_att[route_id][start_time] = att
 
     # save time windows of predictions
+    print 'Time window len:', len(pred_time_windows)
     set_time_windows(sorted(pred_time_windows.keys()))
     print 'Done loading!\n'
     return pred_att
@@ -193,6 +164,27 @@ def test_pred_att():
     pred_att = get_pred_att('pred_avg_travel_time_local')
     real_att = get_real_att('trajectories(table 5)_valid', 'test_local')
     print 'Done evaluating MAPE for avg travel time prediction. MAPE is: \n'
+    print att_mape(real_att, pred_att, routes, time_windows)
+
+def test_att_predictor():
+    '''
+    test att predictor and calc att mape
+    '''
+    print 'Test local prediction of avg travel time using predictor...'
+    ap = att_predictor(data_dir='dataSets', context_dir='training_local',
+        raw_file='trajectories(table 5)_local', result_dir='../results/local')
+    hist_att_f = ap.process_raw_file()
+    ap.process_hist_file(hist_att_f)
+    ap.smooth_hist_att_data()
+    ap.calc_hist_att_of_win()
+    hist_avg_f = ap.write_hist_avg('hist_att_local')
+
+    ap.read_testing_data(ap.data_dir, context_dir='test_local',
+        in_file='trajectories(table 5)_valid')
+    pred_file = ap.do_prediction(pred_idx, 'pred_avg_travel_time_test')
+
+    pred_att = get_pred_att(pred_file)
+    real_att = get_real_att('trajectories(table 5)_valid', 'test_local')
     print att_mape(real_att, pred_att, routes, time_windows)
 
 
@@ -221,8 +213,6 @@ def get_real_vol(in_file, contextDir):
         # ignore first '[' 
         start_time = datetime.strptime(line[1][1:], DATETIME_FORMAT)
         day = start_time.day
-        if day not in pred_days:
-            pred_days[day] = 0
         
         if toll_dir not in real_vol:
             real_vol[toll_dir] = {}
@@ -294,9 +284,22 @@ def test_pred_vol():
     print vol_mape(real_vol, pred_vol, toll_dirs, time_windows)
 
 
+def test_view_data():
+    '''
+    test view data
+    '''
+    dv = data_viewer()
+    ap = att_predictor(data_dir='dataSets', context_dir='training',
+        raw_file='trajectories(table 5)_training', result_dir='../results/local')
+    hist_att_f = ap.process_raw_file()
+    ap.process_hist_file(hist_att_f)
+    
+
+
 def main():
     # test_pred_att()
-    test_pred_vol()
+    test_att_predictor()
+    # test_pred_vol()
 
 
 if __name__ == '__main__':
