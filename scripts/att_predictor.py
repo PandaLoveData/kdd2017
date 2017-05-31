@@ -9,13 +9,13 @@ import os
 from datetime import datetime, date, time, timedelta
 import numpy as np
 from aggregate_travel_time import avgTravelTime
-from visual import my_att_interpolation
-from utils import index_to_time, time_to_index, pred_idx, MAX_TIME_INDEX, DATETIME_FORMAT
+from utils import my_att_interpolation, index_to_time, time_to_index, pred_idx, MAX_TIME_INDEX, DATETIME_FORMAT
 
 file_suffix = '.csv'
 
 class att_predictor(object):
-    def __init__(self, data_dir, context_dir, raw_file, result_dir):
+    def __init__(self, data_dir='dataSets', context_dir='training', 
+        raw_file='trajectories(table 5)_training', result_dir='../results'):
         self.data_dir = data_dir
         self.context_dir = context_dir
         self.raw_file = raw_file
@@ -238,15 +238,15 @@ class att_predictor(object):
             
 
 def test_att_predictor():
-    ap = att_predictor(data_dir='dataSets', context_dir='training',
-        raw_file='trajectories(table 5)_training', result_dir='../results')
+    ap = att_predictor(data_dir='dataSets', context_dir='dataSet_phase2',
+        raw_file='trajectories(table_5)_training2', result_dir='../results')
     hist_att_f = ap.process_raw_file()
     ap.process_hist_file(hist_att_f)
     ap.smooth_hist_att_data()
     ap.calc_hist_att_of_win()
     hist_avg_f = ap.write_hist_avg('hist_att')
 
-    ap.read_testing_data(data_dir='dataSets', context_dir='testing_phase1', in_file='trajectories(table 5)_test1')
+    ap.read_testing_data(data_dir='dataSets', context_dir='dataSet_phase2', in_file='trajectories(table 5)_test2')
     out_file = ap.do_prediction(pred_idx, 'pred_avg_travel_time_test')
     print 'Prediction written to', out_file
 

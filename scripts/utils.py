@@ -4,6 +4,7 @@
 import os
 import math
 from datetime import datetime, time
+import numpy as np
 
 DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
@@ -19,6 +20,30 @@ def index_to_time(index):
     hour = index / 3
     minute = (index % 3) * 20
     return datetime(year=2017, month=10, day=1, hour=hour, minute=minute)
+
+def my_att_interpolation(route_day_att):
+    '''
+    replace missing value (denoted by 0) with prev and next value average
+    '''
+    assert len(route_day_att) == MAX_TIME_INDEX
+    y = np.zeros(MAX_TIME_INDEX)
+    prev_att = 0.0
+    for i in range(MAX_TIME_INDEX):
+        if route_day_att[i] < 1e-3:
+            # find later att
+            ii = i + 1
+            next_att = 0.0
+            while ii < MAX_TIME_INDEX and route_day_att[ii] < 1e-3:
+                ii += 1
+            if ii < MAX_TIME_INDEX:
+                next_att = route_day_att[ii]
+                k = ii - i + 1
+                # 1st of k divide point
+                route_day_att[i] = ((k - 1)*prev_att + next_att) / k
+            else:
+                route_day_att[i] = prev_att
+        prev_att = y[i] = route_day_att[i]
+    return y
 
 
 def att_mape(d_rt, p_rt, routes, time_windows):

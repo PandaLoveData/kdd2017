@@ -297,9 +297,9 @@ def pred_vol_by_avg(toll_id, direction, time_to_pred, test_avg_vol):
 
 def main():
     # hist_file_name = '../results/training_20min_avg_volume.csv'
-    hist_file_name = history_vol('volume(table 6)_training', contextDir='training')
+    hist_file_name = history_vol('volume(table 6)_training2', contextDir='dataSet_phase2')
     load_hist_vol_from(hist_file_name) # return: global hist_vol
-    vol_read_testing_data('volume(table 6)_test1', contextDir='testing_phase1')
+    vol_read_testing_data('volume(table 6)_test2', contextDir='dataSet_phase2')
 
 
 if __name__ == '__main__':

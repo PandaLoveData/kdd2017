@@ -10,10 +10,10 @@ from scipy.signal import butter, filtfilt
 import matplotlib.pyplot as plt
 from aggregate_travel_time import avgTravelTime
 from aggregate_volume import avgVolume
-from utils import DATETIME_FORMAT, time_to_index
+from utils import DATETIME_FORMAT, time_to_index, MAX_TIME_INDEX
+from att_predictor import att_predictor
 
 dataDir = 'dataSets'
-MAX_TIME_SIZE = 72
 
 start_year  = 2016
 start_month = 7
@@ -70,7 +70,7 @@ class att_viewer(viewer):
             trace_start_time = datetime.strptime(trace_start_time, DATETIME_FORMAT)
             start_date = trace_start_time.date()
             if start_date not in self.hist_att[route_id]:
-                self.hist_att[route_id][start_date] = np.zeros(MAX_TIME_SIZE)
+                self.hist_att[route_id][start_date] = np.zeros(MAX_TIME_INDEX)
 
             if start_date < self.start_date:
                 self.start_date = start_date
@@ -89,13 +89,13 @@ class att_viewer(viewer):
             print 'Day', day, 'out of range.'
             return
         num_route = len(self.routes)
-        x = np.array(range(MAX_TIME_SIZE))
-        lines = [] # np.array((num_route, MAX_TIME_SIZE))
+        x = np.array(range(MAX_TIME_INDEX))
+        lines = [] # np.array((num_route, MAX_TIME_INDEX))
         fig, ax = plt.subplots()
         for i in range(num_route):
             route_id = self.routes[i]
             if day not in self.hist_att[route_id]:
-                lines.append(ax.plot(x, np.zeros(MAX_TIME_SIZE), '-', label=route_id))
+                lines.append(ax.plot(x, np.zeros(MAX_TIME_INDEX), '-', label=route_id))
             else:
                 lines.append(ax.plot(x, np.array(self.hist_att[route_id][day]), '-', label=route_id))
         ax.legend(loc='upper right')
@@ -110,7 +110,7 @@ class att_viewer(viewer):
     
     def view_data_of_dates(self, day, day_num, picname='data_of_dates.png'):
         num_route = len(self.routes)
-        x = np.array(range(MAX_TIME_SIZE * day_num))
+        x = np.array(range(MAX_TIME_INDEX * day_num))
         lines = []
         fig, ax = plt.subplots()
         for i in range(num_route):
@@ -119,7 +119,7 @@ class att_viewer(viewer):
             for d in range(day_num):
                 cur_day = day + timedelta(days=d)
                 if cur_day not in self.hist_att[route_id]:
-                    y.extend(np.zeros(MAX_TIME_SIZE))
+                    y.extend(np.zeros(MAX_TIME_INDEX))
                 else:
                     y.extend(self.hist_att[route_id][cur_day])
             lines.append(ax.plot(x, np.array(y), '-', label=route_id))
@@ -141,7 +141,7 @@ class att_viewer(viewer):
             print 'Data of day', day, 'not in data.'
             return
         fig, ax = plt.subplots()
-        x = np.array(range(MAX_TIME_SIZE))
+        x = np.array(range(MAX_TIME_INDEX))
         y = []
         y.extend(self.hist_att[route_id][day])
         if smooth:
@@ -176,15 +176,15 @@ class att_viewer(viewer):
             print 'Data of day', day, 'not in data.'
             return
         fig, ax = plt.subplots()
-        x = np.array(range(MAX_TIME_SIZE * num_day))
+        x = np.array(range(MAX_TIME_INDEX * num_day))
         y = []
         y_ori = []
         for d in range(num_day):
             cur_day = day + timedelta(days=d)
             if cur_day not in self.hist_att[route_id]:
                 print 'Day', cur_day, 'out of range. Ignoring...'
-                y.extend(np.zeros(MAX_TIME_SIZE))
-                y_ori.extend(np.zeros(MAX_TIME_SIZE))
+                y.extend(np.zeros(MAX_TIME_INDEX))
+                y_ori.extend(np.zeros(MAX_TIME_INDEX))
                 continue
             else:
                 if smooth:
@@ -233,7 +233,7 @@ class vol_viewer(viewer):
             start_time = datetime.strptime(line[1][1:], DATETIME_FORMAT)
             start_date = start_time.date()
             if start_date not in self.hist_vol[tolldir]:
-                self.hist_vol[tolldir][start_date] = np.zeros(MAX_TIME_SIZE)
+                self.hist_vol[tolldir][start_date] = np.zeros(MAX_TIME_INDEX)
             
             if start_date < self.start_date:
                 self.start_date = start_date
@@ -252,13 +252,13 @@ class vol_viewer(viewer):
             print 'Day', day, 'out of range.'
             return
         num_toll = len(self.toll_dirs)
-        x = np.array(range(MAX_TIME_SIZE))
+        x = np.array(range(MAX_TIME_INDEX))
         lines = []
         fig, ax = plt.subplots()
         for i in range(num_toll):
             toll_dir = self.toll_dirs[i]
             if day not in self.hist_vol[toll_dir]:
-                lines.append(ax.plot(x, np.zeros(MAX_TIME_SIZE), '-', label=toll_dir))
+                lines.append(ax.plot(x, np.zeros(MAX_TIME_INDEX), '-', label=toll_dir))
             else:
                 lines.append(ax.plot(x, np.array(self.hist_vol[toll_dir][day]), '-', label=toll_dir))
         ax.legend(loc='upper right')
@@ -276,7 +276,7 @@ class vol_viewer(viewer):
             print 'Warning! Date out of range', day
             return
         num_toll = len(self.toll_dirs)
-        x = np.array(range(MAX_TIME_SIZE * day_num))
+        x = np.array(range(MAX_TIME_INDEX * day_num))
         lines = []
         fig, ax = plt.subplots()
         for i in range(num_toll):
@@ -285,7 +285,7 @@ class vol_viewer(viewer):
             for d in range(day_num):
                 cur_day = day + timedelta(days=d)
                 if cur_day not in self.hist_vol[toll_dir]:
-                    y.extend(np.zeros(MAX_TIME_SIZE))
+                    y.extend(np.zeros(MAX_TIME_INDEX))
                 else:
                     y.extend(self.hist_vol[toll_dir][cur_day])
             # end for loop
@@ -308,7 +308,7 @@ class vol_viewer(viewer):
             print 'Day out of range.', day
             return
         fig, ax = plt.subplots()
-        x = np.array(range(MAX_TIME_SIZE))
+        x = np.array(range(MAX_TIME_INDEX))
         y = []
         y.extend(self.hist_vol[tolldir][day])
         if smooth:
@@ -338,14 +338,14 @@ class vol_viewer(viewer):
             print 'Day', day, 'out of range.'
             return
         fig, ax = plt.subplots()
-        x = np.array(range(MAX_TIME_SIZE * day_num))
+        x = np.array(range(MAX_TIME_INDEX * day_num))
         y = []
         y_ori = []
         for d in range(day_num):
             cur_day = day + timedelta(days=d)
             if cur_day not in self.hist_vol[tolldir]:
                 print 'Day', cur_day, 'out of range. Ignoring...'
-                y.extend(np.zeros(MAX_TIME_SIZE))
+                y.extend(np.zeros(MAX_TIME_INDEX))
                 continue
             else:
                 if smooth:
@@ -394,31 +394,6 @@ def butter_lowpass_filtfilt(data, cutoff, fs, order=5):
     return y
 
 
-def my_att_interpolation(route_day_att):
-    '''
-    replace missing value (denoted by 0) with prev and next value average
-    '''
-    assert len(route_day_att) == MAX_TIME_SIZE
-    y = np.zeros(MAX_TIME_SIZE)
-    prev_att = 0.0
-    for i in range(MAX_TIME_SIZE):
-        if route_day_att[i] < 1e-3:
-            # find later att
-            ii = i + 1
-            next_att = 0.0
-            while ii < MAX_TIME_SIZE and route_day_att[ii] < 1e-3:
-                ii += 1
-            if ii < MAX_TIME_SIZE:
-                next_att = route_day_att[ii]
-                k = ii - i + 1
-                # 1st of k divide point
-                route_day_att[i] = ((k - 1)*prev_att + next_att) / k
-            else:
-                route_day_att[i] = prev_att
-        prev_att = y[i] = route_day_att[i]
-    return y
-
-
 def my_vol_smoothing(tolldir_day_vol):
     return tolldir_day_vol
 
@@ -430,23 +405,43 @@ class data_viewer(object):
         self.pic_dir = pic_dir
 
     def add_data(self, data, label):
-        if len(data) != MAX_TIME_SIZE:
+        if len(data) != MAX_TIME_INDEX:
             print label, 'data length not valid.'
             return
         self.datas.append(data)
         self.labels.append(label)
         
 
-    def draw_and_show(img_name='my_data.png'):
+    def draw_and_show(self, img_name='my_data.png'):
         fig, ax = plt.subplots()
-        x = np.arange(MAX_TIME_SIZE)
-        for data in self.datas:
+        x = np.arange(MAX_TIME_INDEX)
+        for i in range(len(self.datas)):
+            data = self.datas[i]
+            print 'Draw', self.labels[i]
             ax.plot(x, data, label=self.labels[i])
         ax.legend()
+        plt.draw()
         plt.show()
         figname = '/'.join([self.pic_dir, img_name])
         fig.savefig(figname)
     
+all_routes = ['A-2', 'A-3', 'B-1', 'B-3', 'C-1', 'C-3']
+
+def view_data():
+    dv = data_viewer(pic_dir='../images')
+    ap = att_predictor()
+    hist_att_f = ap.process_raw_file()
+    ap.process_hist_file(hist_att_f)
+    ap.smooth_hist_att_data()
+    ap.calc_hist_att_of_win()
+    # for route_id in sorted(ap.hist_avg.keys()):
+    for route_id in all_routes[0:1]:
+        print route_id
+        dv.add_data(ap.hist_avg[route_id], route_id+'avg')
+        dv.add_data(ap.hist_att[route_id])
+        # break
+    # dv.draw_and_show()
+
 
 def test_viewer():
     day = date(year=2016, month=10, day=1)
@@ -467,7 +462,8 @@ def test_viewer():
     
 
 def main():
-    test_viewer()
+    # test_viewer()
+    view_data()
 
 
 if __name__ == '__main__':

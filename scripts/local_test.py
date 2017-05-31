@@ -272,9 +272,9 @@ def get_pred_vol(in_file):
 def test_pred_vol():
     print 'Test local prediction of volume...'
 
-    hist_file_name = history_vol('volume(table 6)_local', 'training_local')
+    hist_file_name = history_vol('volume(table 6)_training2', 'dataSet_phase2')
     hist_vol = load_hist_vol_from(hist_file_name)
-    vol_pred_file_name = vol_read_testing_data('volume(table 6)_valid', 'test_local')
+    vol_pred_file_name = vol_read_testing_data('volume(table 6)_test2', 'dataSet_phase2')
     print 'vol read testing file is:', vol_pred_file_name
 
     pred_vol = get_pred_vol(vol_pred_file_name)
@@ -299,7 +299,7 @@ def test_view_data():
 def main():
     # test_pred_att()
     test_att_predictor()
-    # test_pred_vol()
+    test_pred_vol()
 
 
 if __name__ == '__main__':
