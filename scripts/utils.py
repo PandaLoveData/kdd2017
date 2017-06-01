@@ -15,7 +15,7 @@ def time_to_index(date_time):
     return date_time.hour * 3 + int(math.floor(date_time.minute / 20))
 
 def time_to_date_index(date_time):
-    dtime = date_time.date - date(date_time.year, 1, 1)
+    dtime = date_time - datetime(date_time.year, 1, 1)
     return dtime.days
 
 def index_to_time(index):

@@ -15,7 +15,6 @@ file_suffix = '.csv'
 out_path = '../results/'
 dataDir = 'dataSets'
 PRED_METHOD = 'AVE'
-clf = svm.SVR()
 
 tollgates = ['1', '1', '2', '3', '3']
 directions = ['1', '0', '0', '1', '0']
@@ -54,6 +53,8 @@ test_idx_2 = range(test_start_idx, test_end_idx)
 test_idx = []
 test_idx.extend(test_idx_1)
 test_idx.extend(test_idx_2)
+
+models = {}
 
 # for idx in pred_idx:
 #     print idx
@@ -118,32 +119,65 @@ def history_vol(in_file, contextDir):
     # fw.close()
     # print 'Done writing\n'
 
+    print 'Begin Training!\n'
+    for toll_dir in hist_win_vol.keys():
+        models[toll_dir] = {}
+        X0, Y0, X1, Y1 = [], {}, [], {}
+        models[toll_dir][0] = {}
+        models[toll_dir][1] = {}
+        for fitdate in hist_win_vol[toll_dir].values():
+            # print fitdate
+            x = []
+            for i in test_idx_1:
+                if i not in fitdate:
+                    my_volume_interpolation(fitdate, i)
+                x.append(fitdate[i])
+            X0.append(x)
+            for i in pred_idx_1:
+                if i not in Y0:
+                    Y0[i] = []
+                if i not in fitdate:
+                    my_volume_interpolation(fitdate, i)
+                Y0[i].append(fitdate[i])
+
+            x = []
+            for i in test_idx_2:
+                if i not in fitdate:
+                    my_volume_interpolation(fitdate, i)
+                x.append(fitdate[i])
+            X1.append(x)
+            for i in pred_idx_2:
+                if i not in Y1:
+                    Y1[i] = []
+                if i not in fitdate:
+                    my_volume_interpolation(fitdate, i)
+                Y1[i].append(fitdate[i])
+
+        for i in Y0:
+            models[toll_dir][0][i] = svm.SVR(kernel='linear')
+            models[toll_dir][0][i].fit(X0, Y0[i])
+        for i in Y1:
+            models[toll_dir][1][i] = svm.SVR(kernel='linear')
+            models[toll_dir][1][i].fit(X1, Y1[i])
+
+    print 'Done Training!\n'
     return 0
 
-
-def load_hist_vol_from(file_name):
-    # history_avg_vol.csv
-    print 'Load history avg volume data from file', file_name
-    global hist_vol
-    hist_vol = {}
-    fr = open(file_name, 'r')
-    print fr.readline()
-    filelines = fr.readlines()
-    for toll_dir in toll_directions:
-        hist_vol[toll_dir] = {}
-    for i in range(len(filelines)):
-        line = filelines[i].split(',')
-        tollgate_id = line[0]
-        direction = line[2]
-        toll_dir = '-'.join([tollgate_id, direction])
-        volume = float(line[3])
-        # remove cloase and open brackets '[' and ')'
-        start_time_str = line[1]
-        start_time = datetime.strptime(start_time_str, DATETIME_FORMAT)
-        hist_vol[toll_dir][time_to_index(start_time)] = volume
-    print 'Done loading!\n'
-    return hist_vol
-
+def my_volume_interpolation(fitdate, i):
+    ii = i - 1
+    jj = i + 1
+    while (ii not in fitdate) and (ii > 0):
+        ii = ii - 1
+    while (jj not in fitdate) and (jj <= MAX_TIME_INDEX):
+        jj = jj + 1
+    if ii == 0:
+        fitdate[i] = fitdate[jj]
+    elif jj == MAX_TIME_INDEX + 1:
+        fitdate[i] = fitdate[ii]
+    else:
+        a = i - ii
+        b = jj - i
+        fitdate[i] = b/(a+b)*fitdate[ii] + a/(a+b)*fitdate[jj]
 
 def vol_preprocess_testing_data(in_file, contextDir):
     in_file = '/'.join([dataDir, contextDir, in_file])
@@ -179,10 +213,7 @@ def predict_day(day):
                 # get average volume of this day's before time
                 test_avg_vol = test_vol[toll_dir][before_time]
 
-            if PRED_METHOD == 'AVE':
-                pred_volume = pred_vol_by_avg(tollgate_id, direction, pred_time, test_avg_vol)
-            elif PRED_METHOD == 'SVR':
-                pred_volume = pred_vol_by_svr(tollgate_id, direction, pred_time, test_avg_vol)
+            pred_volume = pred_vol_by_svr(tollgate_id, direction, pred_time, day)
 
             # update previous data using predicted value
             if pred_time not in test_vol[toll_dir]:
@@ -267,6 +298,7 @@ def vol_read_testing_data(in_file, contextDir):
         # cannot use later data to predict past data
         # when i == len(test_data) - 1, predict the volume of the last day
         if ((day != last_day) and (last_day != -1)):
+            print 'A new day!\n'
             predict_day(last_day)
 
         last_day = day
@@ -305,20 +337,37 @@ def pred_vol_by_avg(toll_id, direction, time_to_pred, test_avg_vol):
     return pred_vol
 
 
-def pred_vol_by_svr(toll_id, direction, time_to_pred, test_avg_vol):
+def pred_vol_by_svr(toll_id, direction, time_to_pred, day):
     index = time_to_index(time_to_pred)
     toll_dir = '-'.join([toll_id, direction])
 
     print 'Custom SVR Prediction underway!\n'
-    pred_vol = clf.predict(X)
+    if index in pred_idx_1:
+        x = []
+        for i in test_idx_1:
+            # if i not in test_vol[toll_dir]:
+            #     my_volume_interpolation(test_vol[toll_dir], i)
+            x_t = index_to_time(i)
+            x_t = datetime(year=pred_year,month=pred_month, day=day,
+                hour=x_t.hour,minute=x_t.minute)
+            if x_t not in test_vol[toll_dir]:
+                x.append(0)
+            else:
+                x.append(test_vol[toll_dir][x_t])
+        pred_vol = models[toll_dir][0][index].predict(x)
+    elif index in pred_idx_2:
+        x = []
+        for i in test_idx_2:
+            x_t = index_to_time(i)
+            x_t = datetime(year=pred_year,month=pred_month, day=day,
+                hour=x_t.hour,minute=x_t.minute)
+            if x_t not in test_vol[toll_dir]:
+                x.append(0)
+            else:
+                x.append(test_vol[toll_dir][x_t])
+        pred_vol = models[toll_dir][1][index].predict(x)
 
-    if math.fabs(test_avg_vol) < 1e-2:
-        pred_vol = pred_vol
-    elif pred_vol == 0.0:
-        pred_vol = test_avg_vol
-    elif math.fabs((test_avg_vol - pred_vol) / pred_vol) > 0.1:
-        pred_vol = pred_vol * 0.9 + 0.1 * test_avg_vol
-    return pred_vol
+    return pred_vol[0]
 
 
 def main():
