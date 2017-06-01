@@ -154,10 +154,8 @@ def history_vol(in_file, contextDir):
                 Y1[i].append(fitdate[i])
 
         for i in Y0:
-            models[toll_dir][0][i] = svm.SVR(kernel='linear')
             models[toll_dir][0][i].fit(X0, Y0[i])
         for i in Y1:
-            models[toll_dir][1][i] = svm.SVR(kernel='linear')
             models[toll_dir][1][i].fit(X1, Y1[i])
 
     print 'Done Training!\n'
@@ -373,9 +371,10 @@ def pred_vol_by_svr(toll_id, direction, time_to_pred, day):
 def main():
     # hist_file_name = '../results/training_20min_avg_volume.csv'
     hist_file_name = history_vol('volume(table 6)_training', contextDir='training')
+    hist_file_name = history_vol('volume(table 6)_training2', contextDir='dataSet_phase2')
     # load_hist_vol_from(hist_file_name) # return: global hist_vol # not for svr
     # read and predict at the same time
-    vol_read_testing_data('volume(table 6)_test1', contextDir='testing_phase1')
+    vol_read_testing_data('volume(table 6)_test2', contextDir='dataSet_phase2')
 
 
 if __name__ == '__main__':
